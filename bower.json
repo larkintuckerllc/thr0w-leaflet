@@ -4,7 +4,10 @@
   "authors": [
     "John Tucker <john@larkintuckerllc.com>"
   ],
-  "main": "dist/thr0w-leaflet.js",
+  "main": [
+    "dist/thr0w-leaflet.css",
+    "dist/thr0w-leaflet.min.js"
+  ],
   "license": "GPL",
   "ignore": [],
   "dependencies": {
