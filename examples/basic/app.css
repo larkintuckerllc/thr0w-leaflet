@@ -1,0 +1,15 @@
+html, body {
+  margin: 0px;
+  padding: 0px;
+}
+#my_frame {
+  position: relative;
+  overflow: hidden;
+  width: 400px;
+  height: 400px;
+}
+#my_content {
+  position: absolute;
+  width: 1200px;
+  height: 1200px;
+}
