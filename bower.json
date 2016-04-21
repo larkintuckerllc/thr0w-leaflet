@@ -1,0 +1,12 @@
+{
+  "name": "thr0w-leaflet",
+  "version": "0.0.1",
+  "authors": [
+    "John Tucker <john@larkintuckerllc.com>"
+  ],
+  "main": "dist/thr0w-leaflet.js",
+  "license": "GPL",
+  "ignore": [],
+  "dependencies": {
+  }
+}
