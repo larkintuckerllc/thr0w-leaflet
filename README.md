@@ -78,6 +78,8 @@ To compile, install the development dependencies using *npm* and compile with
 Where possible, the CSS and JavaScript is not to require any
 additional third-party libraries.
 
+CSS entries are prefixed with *thr0w_leaflet_*.
+
 The CSS is to follow the BEM naming convention.
 
 <https://css-tricks.com/bem-101/>
