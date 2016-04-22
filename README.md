@@ -1,4 +1,4 @@
-README v0.0.1 / 21 APRIL 2016
+README v0.0.3 / 22 APRIL 2016
 
 # Thr0w Leaflet Module
 
