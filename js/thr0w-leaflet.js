@@ -97,6 +97,9 @@
     var touchEndRadius;
     var touchEndCenterX;
     var touchEndCenterY;
+    var abort = false;
+    var abortInterval;
+    var abortCancel = true;
     var handPanning = false;
     var syncing = false;
     var iAmSyncing = false;
@@ -428,11 +431,11 @@
       }
     }
     function handleTouchStart(e) {
+      e.stopPropagation();
       var touchOneX;
       var touchOneY;
       var touchTwoX;
       var touchTwoY;
-      e.stopPropagation();
       touchOneX = (e.touches[0].pageX - frameOffsetLeft) *
         scale + visibleContentLeft;
       touchOneLastX = touchOneX;
@@ -456,6 +459,10 @@
         touchEndCenterY = (touchOneY + touchTwoY) / 2;
       }
       if (e.touches.length === 1) {
+        abort = false;
+        abortCancel = true;
+        window.clearInterval(abortInterval);
+        abortInterval = window.setInterval(checkAbort, 1000);
         handPanning = false;
         zoomed = false;
         sync.update();
@@ -466,6 +473,10 @@
       }
     }
     function handleTouchMove(e) {
+      e.stopPropagation();
+      if (abort) { // ISSUE WITH CHROME WITH TOUCH EVENTS AND MEMORY GROWTH
+        return;
+      }
       if (zoomed) { // MAKING EXPLICT ALREADY IMPLICIT BEHAVIOR
         return;
       }
@@ -473,8 +484,8 @@
       var touchOneY;
       var touchTwoX;
       var touchTwoY;
-      e.stopPropagation();
       if (iAmSyncing) {
+        abortCancel = false;
         touchOneX = (e.touches[0].pageX - frameOffsetLeft) *
           scale + visibleContentLeft;
         touchOneY = (e.touches[0].pageY - frameOffsetTop) *
@@ -503,6 +514,9 @@
     }
     function handleTouchEnd(e) {
       e.stopPropagation();
+      if (abort) {
+        return;
+      }
       if (zoomed) {
         return;
       }
@@ -527,6 +541,7 @@
           }
         }
         if (e.touches.length === 0) {
+          window.clearInterval(abortInterval);
           sync.idle();
           iAmSyncing = false;
           syncing = false;
@@ -579,6 +594,19 @@
         zoomLevel,
         {animate: false}
       );
+    }
+    // HACK FOR GOOGLE TOUCH EVENTS HANDLING WITH MEMORY
+    function checkAbort() {
+      if (abortCancel) {
+        abort = true;
+        window.clearInterval(abortInterval);
+        sync.idle();
+        iAmSyncing = false;
+        syncing = false;
+        oobSync.update();
+        oobSync.idle();
+      }
+      abortCancel = true;
     }
   }
 })();
