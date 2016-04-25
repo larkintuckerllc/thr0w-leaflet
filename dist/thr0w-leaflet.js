@@ -514,6 +514,7 @@
       e.stopPropagation();
       var touchEndCenterLatLng;
       var newLat;
+      var newLng;
       if (abort) {
         return;
       }
@@ -530,8 +531,18 @@
             newLat = (centerLatLng.lat + touchEndCenterLatLng.lat) / 2;
             newLat = newLat <= MAX_LAT ? newLat : MAX_LAT;
             newLat = newLat >= MIN_LAT ? newLat : MIN_LAT;
-            // TODO: FIGURE OUT LNG CALCULATION
-            centerLatLng = L.latLng(newLat, touchEndCenterLatLng.lng);
+            newLng = (centerLatLng.lng + touchEndCenterLatLng.lng) / 2;
+            if (touchEndCenterX > contentCenterX &&
+              touchEndCenterLatLng.lng < centerLatLng.lng) {
+              newLng = (centerLatLng.lng + touchEndCenterLatLng.lng + 360) / 2;
+              newLng = newLng <= 180 ? newLng : newLng - 360;
+            }
+            if (touchEndCenterX < contentCenterX &&
+              touchEndCenterLatLng.lng > centerLatLng.lng) {
+              newLng = (centerLatLng.lng + touchEndCenterLatLng.lng - 360) / 2;
+              newLng = newLng >= 180 ? newLng : newLng + 360;
+            }
+            centerLatLng = L.latLng(newLat, newLng);
             if (touchEndRadius > touchStartRadius) {
               zoom(zoomLevel + 1);
             } else {
