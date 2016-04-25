@@ -328,7 +328,6 @@
           window.clearInterval(moveAnimationInterval);
           moveAnimationInterval = null;
           centerLatLng = L.latLng(lat,lng);
-          // TODO: FIX
           setView();
           animationSync.update();
           animationSync.idle();
@@ -348,7 +347,6 @@
             centerLatLng.lat + moveIncrementLat,
             newLng
           );
-          // TODO: FIX
           setView();
           animationSync.update();
         }
@@ -514,6 +512,8 @@
     }
     function handleTouchEnd(e) {
       e.stopPropagation();
+      var touchEndCenterLatLng;
+      var newLat;
       if (abort) {
         return;
       }
@@ -524,9 +524,14 @@
         if (e.touches.length === 1) {
           if (!handPanning) {
             zoomed = true;
-            centerLatLng = positioningMap.containerPointToLatLng(
+            touchEndCenterLatLng = positioningMap.containerPointToLatLng(
               L.point(touchEndCenterX, touchEndCenterY)
             );
+            newLat = (centerLatLng.lat + touchEndCenterLatLng.lat) / 2;
+            newLat = newLat <= MAX_LAT ? newLat : MAX_LAT;
+            newLat = newLat >= MIN_LAT ? newLat : MIN_LAT;
+            // TODO: FIGURE OUT LNG CALCULATION
+            centerLatLng = L.latLng(newLat, touchEndCenterLatLng.lng);
             if (touchEndRadius > touchStartRadius) {
               zoom(zoomLevel + 1);
             } else {
