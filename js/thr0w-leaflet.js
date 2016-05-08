@@ -9,8 +9,8 @@
   if (window.thr0w === undefined) {
     throw 400;
   }
-  var MAX_LAT = 80;
-  var MIN_LAT = -80;
+  var MAX_LAT = 85;
+  var MIN_LAT = -85;
   var INTERVAL = 33;
   var L = window.L;
   var service = {};
@@ -231,7 +231,7 @@
       }
       if (iAmAnimationSyncing && data.nextMove) {
         moveTo(data.nextMoveDuration, data.nextMoveLat,
-          data.nextMoveLng, data.netMoveZ);
+          data.nextMoveLng, data.nextMoveZ);
       }
     }
     // jscs:disable
@@ -282,6 +282,11 @@
       if (animationSyncing) {
         if (iAmAnimationSyncing) {
           clearAnimation();
+          animationSync.idle();
+          iAmAnimationSyncing = false;
+          animationSyncing = false;
+          oobSync.update();
+          oobSync.idle();
         } else {
           nextMove = true;
           nextMoveDuration = duration;
@@ -293,11 +298,18 @@
           return;
         }
       }
+      if (!validPosition(centerLatLng, z)) {
+        return;
+      }
+      // CHECK IF VALID AFTER MOVE
+      if (!validPosition(L.latLng(lat,lng), z)) {
+        return;
+      }
       iAmAnimationSyncing = true;
       animationSyncing = true;
       oobSync.update();
       oobSync.idle();
-      zoom(z);
+      zoom(centerLatLng, z);
       animationSync.update();
       moveTimeLat = Math.abs(duration * (lat - centerLatLng.lat) / 180);
       if (Math.abs(lng - centerLatLng.lng) <= 180) {
@@ -381,12 +393,12 @@
       return map;
     }
     function zoomIn() {
-      zoom(zoomLevel + 1);
+      zoom(centerLatLng, zoomLevel + 1);
       sync.update();
       sync.idle();
     }
     function zoomOut() {
-      zoom(zoomLevel - 1);
+      zoom(centerLatLng, zoomLevel - 1);
       sync.update();
       sync.idle();
     }
@@ -542,11 +554,10 @@
               newLng = (centerLatLng.lng + touchEndCenterLatLng.lng - 360) / 2;
               newLng = newLng >= 180 ? newLng : newLng + 360;
             }
-            centerLatLng = L.latLng(newLat, newLng);
             if (touchEndRadius > touchStartRadius) {
-              zoom(zoomLevel + 1);
+              zoom(L.latLng(newLat, newLng), zoomLevel + 1);
             } else {
-              zoom(zoomLevel - 1);
+              zoom(L.latLng(newLat, newLng), zoomLevel - 1);
             }
             sync.update();
             sync.idle();
@@ -567,11 +578,16 @@
       }
     }
     function pan(shiftX, shiftY) {
-      var lat = centerLatLng.lat;
-      if (lat > MAX_LAT && shiftY < 0) {
+      var topLeftLatLng = positioningMap.containerPointToLatLng(
+        L.point(0, 0)
+      );
+      var bottomRightLatLng = positioningMap.containerPointToLatLng(
+        L.point(contentCenterX * 2, contentCenterY * 2)
+      );
+      if (topLeftLatLng.lat > MAX_LAT && shiftY < 0) {
         return;
       }
-      if (lat < MIN_LAT && shiftY > 0) {
+      if (bottomRightLatLng.lat < MIN_LAT && shiftY > 0) {
         return;
       }
       centerLatLng = positioningMap.containerPointToLatLng(
@@ -582,11 +598,14 @@
       );
       setView();
     }
-    function zoom(level) {
+    function zoom(newCenterLatLng, level) {
       level = level <= maxZoom ? level : maxZoom;
       level = level >= minZoom ? level : minZoom;
-      zoomLevel = level;
-      setView();
+      if (validPosition(newCenterLatLng, level)) {
+        centerLatLng = newCenterLatLng;
+        zoomLevel = level;
+        setView();
+      }
     }
     function clearAnimation() {
       if (moveAnimationInterval) {
@@ -623,6 +642,34 @@
         oobSync.idle();
       }
       abortCancel = true;
+    }
+    function validPosition(newCenterLatLng, level) {
+      var valid = true;
+      var topLeftLatLng;
+      var bottomRightLatLng;
+      positioningMap.setView(
+        newCenterLatLng,
+        level,
+        {animate: false}
+      );
+      topLeftLatLng = positioningMap.containerPointToLatLng(
+        L.point(0, 0)
+      );
+      bottomRightLatLng = positioningMap.containerPointToLatLng(
+        L.point(contentCenterX * 2, contentCenterY * 2)
+      );
+      if (topLeftLatLng.lat > MAX_LAT) {
+        valid = false;
+      }
+      if (bottomRightLatLng.lat < MIN_LAT) {
+        valid = false;
+      }
+      positioningMap.setView(
+        centerLatLng,
+        zoomLevel,
+        {animate: false}
+      );
+      return valid;
     }
   }
 })();
