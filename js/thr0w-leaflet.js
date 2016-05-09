@@ -298,10 +298,9 @@
           return;
         }
       }
-      if (!validPosition(centerLatLng, z)) {
+      if (duration !== 0 && !validPosition(centerLatLng, z)) {
         return;
       }
-      // CHECK IF VALID AFTER MOVE
       if (!validPosition(L.latLng(lat,lng), z)) {
         return;
       }
@@ -309,8 +308,10 @@
       animationSyncing = true;
       oobSync.update();
       oobSync.idle();
-      zoom(centerLatLng, z);
-      animationSync.update();
+      if (duration !== 0) {
+        zoom(centerLatLng, z);
+        animationSync.update();
+      }
       moveTimeLat = Math.abs(duration * (lat - centerLatLng.lat) / 180);
       if (Math.abs(lng - centerLatLng.lng) <= 180) {
         moveTimeLng = Math.abs(duration * (lng - centerLatLng.lng) / 180);
@@ -339,6 +340,7 @@
         if (moveAnimationTime > moveTime) {
           window.clearInterval(moveAnimationInterval);
           moveAnimationInterval = null;
+          zoomLevel = z;
           centerLatLng = L.latLng(lat,lng);
           setView();
           animationSync.update();
