@@ -1,5 +1,3 @@
-README v0.0.6 / 8 MAY 2016
-
 # Thr0w Leaflet Module
 
 ## Introduction
@@ -30,6 +28,12 @@ Download the Leaflet library (version 1.0.0 or greater):
 Download the latest version:
 
 <https://github.com/larkintuckerllc/thr0w-leaflet/releases>
+
+or using Bower:
+
+```
+bower install thr0w-leaflet
+```
 
 To install this module:
 
