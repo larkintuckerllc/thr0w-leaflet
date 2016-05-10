@@ -601,12 +601,46 @@
       setView();
     }
     function zoom(newCenterLatLng, level) {
+      var topLeftLatLng;
+      var bottomRightLatLng;
       level = level <= maxZoom ? level : maxZoom;
       level = level >= minZoom ? level : minZoom;
       if (validPosition(newCenterLatLng, level)) {
         centerLatLng = newCenterLatLng;
         zoomLevel = level;
         setView();
+      } else {
+        topLeftLatLng = positioningMap.containerPointToLatLng(
+          L.point(0, 0)
+        );
+        bottomRightLatLng = positioningMap.containerPointToLatLng(
+          L.point(contentCenterX * 2, contentCenterY * 2)
+        );
+        if (bottomRightLatLng.lat > 0) {
+          newCenterLatLng = L.latLng(
+            bottomRightLatLng.lat -
+            (topLeftLatLng.lat - bottomRightLatLng.lat) * 0.1,
+            newCenterLatLng.lng
+          );
+        } else {
+          if (topLeftLatLng.lat < 0) {
+            newCenterLatLng = L.latLng(
+              topLeftLatLng.lat +
+              (topLeftLatLng.lat - bottomRightLatLng.lat) * 0.1,
+              newCenterLatLng.lng
+            );
+          } else {
+            newCenterLatLng = L.latLng(
+              0,
+              newCenterLatLng.lng
+            );
+          }
+        }
+        if (validPosition(newCenterLatLng, level)) {
+          centerLatLng = newCenterLatLng;
+          zoomLevel = level;
+          setView();
+        }
       }
     }
     function clearAnimation() {
