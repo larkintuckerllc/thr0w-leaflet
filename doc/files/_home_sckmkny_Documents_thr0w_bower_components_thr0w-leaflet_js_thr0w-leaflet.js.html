@@ -679,10 +679,10 @@
         L.point(contentCenterX * 2, contentCenterY * 2)
       );
       if (topLeftLatLng.lat &gt; MAX_LAT &amp;&amp; shiftY &lt; 0) {
-        return;
+        shiftY = 0;
       }
       if (bottomRightLatLng.lat &lt; MIN_LAT &amp;&amp; shiftY &gt; 0) {
-        return;
+        shiftY = 0;
       }
       centerLatLng = positioningMap.containerPointToLatLng(
         L.point(
