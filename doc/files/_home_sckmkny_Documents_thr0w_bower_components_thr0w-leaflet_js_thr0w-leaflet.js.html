@@ -285,6 +285,9 @@
     this.moveTo = moveTo;
     this.moveStop = moveStop;
     this.getLeafletMap = getLeafletMap;
+    this.getCenterLat = getCenterLat;
+    this.getCenterLng = getCenterLng;
+    this.getZoomLevel = getZoomLevel;
     // FUNCTIONS
     function message() {
       return {
@@ -485,6 +488,36 @@
     // jscs:enable
     function getLeafletMap() {
       return map;
+    }
+    // jscs:disable
+    /**
+    * This method will return the Leaflet map center latitude.
+    * @method getCenterLat
+    * @return {Number} The latitude.
+    */
+    // jscs:enable
+    function getCenterLat() {
+      return centerLatLng.lat;
+    }
+    // jscs:disable
+    /**
+    * This method will return the Leaflet map center longitude.
+    * @method getCenterLng
+    * @return {Number} The longitude.
+    */
+    // jscs:enable
+    function getCenterLng() {
+      return centerLatLng.lng;
+    }
+    // jscs:disable
+    /**
+    * This method will return the Leaflet map zoom level.
+    * @method getZoomLevel
+    * @return {Integer} The zoom level.
+    */
+    // jscs:enable
+    function getZoomLevel() {
+      return zoomLevel;
     }
     function zoomIn() {
       zoom(centerLatLng, zoomLevel + 1);
