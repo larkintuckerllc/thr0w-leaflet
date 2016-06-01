@@ -1,7 +1,7 @@
 {
   "name": "thr0w-leaflet",
   "description": "The Thr0w Project is about building digital signage. This package creates interactive maps using the Leaflet library.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "main": [
     "dist/thr0w-leaflet.css",
     "dist/thr0w-leaflet.min.js"

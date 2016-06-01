@@ -698,8 +698,8 @@
       if (bottomRightLatLng.lat < MIN_LAT) {
         lat = positioningMap.containerPointToLatLng(
           L.point(0,
-            contentCenterY - (400 -
-            positioningMap.latLngToContainerPoint(L.latLng(MIN_LAT, 0)).y)
+            positioningMap.latLngToContainerPoint(L.latLng(MIN_LAT, 0)).y -
+              contentCenterY
           )
         ).lat;
       }
