@@ -111,8 +111,8 @@
     var nextMoveLng;
     var nextMoveZ;
     var moveAnimationInterval = null;
-    var minZoom;
-    var maxZoom;
+    var minZoom = options.minZoom !== undefined ? options.minZoom : 1;
+    var maxZoom = options.maxZoom !== undefined ? options.maxZoom : 999; // INFINITY
     var sync;
     var animationSync;
     var oobSync;
@@ -154,8 +154,7 @@
     contentEl.appendChild(palatteEl);
     // FINALIZE MAPS
     setView();
-    minZoom = map.getMinZoom();
-    maxZoom = map.getMaxZoom();
+    zoom(centerLatLng, zoomLevel); // CORRECT FOR MAX/MIN_LAT
     // SYNCS
     sync = new window.thr0w.Sync(
       grid,
@@ -301,12 +300,6 @@
           return;
         }
       }
-      if (duration !== 0 && !validPosition(centerLatLng, z)) {
-        return;
-      }
-      if (!validPosition(L.latLng(lat,lng), z)) {
-        return;
-      }
       iAmAnimationSyncing = true;
       animationSyncing = true;
       oobSync.update();
@@ -315,6 +308,7 @@
         zoom(centerLatLng, z);
         animationSync.update();
       }
+      lat = validLat(L.latLng(lat, lng), z);
       moveTimeLat = Math.abs(duration * (lat - centerLatLng.lat) / 180);
       if (Math.abs(lng - centerLatLng.lng) <= 180) {
         moveTimeLng = Math.abs(duration * (lng - centerLatLng.lng) / 180);
@@ -634,47 +628,13 @@
       setView();
     }
     function zoom(newCenterLatLng, level) {
-      var topLeftLatLng;
-      var bottomRightLatLng;
+      var newCenterLat;
       level = level <= maxZoom ? level : maxZoom;
       level = level >= minZoom ? level : minZoom;
-      if (validPosition(newCenterLatLng, level)) {
-        centerLatLng = newCenterLatLng;
-        zoomLevel = level;
-        setView();
-      } else {
-        topLeftLatLng = positioningMap.containerPointToLatLng(
-          L.point(0, 0)
-        );
-        bottomRightLatLng = positioningMap.containerPointToLatLng(
-          L.point(contentCenterX * 2, contentCenterY * 2)
-        );
-        if (bottomRightLatLng.lat > 0) {
-          newCenterLatLng = L.latLng(
-            bottomRightLatLng.lat -
-            (topLeftLatLng.lat - bottomRightLatLng.lat) * 0.1,
-            newCenterLatLng.lng
-          );
-        } else {
-          if (topLeftLatLng.lat < 0) {
-            newCenterLatLng = L.latLng(
-              topLeftLatLng.lat +
-              (topLeftLatLng.lat - bottomRightLatLng.lat) * 0.1,
-              newCenterLatLng.lng
-            );
-          } else {
-            newCenterLatLng = L.latLng(
-              0,
-              newCenterLatLng.lng
-            );
-          }
-        }
-        if (validPosition(newCenterLatLng, level)) {
-          centerLatLng = newCenterLatLng;
-          zoomLevel = level;
-          setView();
-        }
-      }
+      newCenterLat = validLat(newCenterLatLng, level);
+      centerLatLng = L.latLng(newCenterLat, newCenterLatLng.lng);
+      zoomLevel = level;
+      setView();
     }
     function clearAnimation() {
       if (moveAnimationInterval) {
@@ -712,8 +672,8 @@
       }
       abortCancel = true;
     }
-    function validPosition(newCenterLatLng, level) {
-      var valid = true;
+    function validLat(newCenterLatLng, level) {
+      var lat = newCenterLatLng.lat;
       var topLeftLatLng;
       var bottomRightLatLng;
       positioningMap.setView(
@@ -728,17 +688,27 @@
         L.point(contentCenterX * 2, contentCenterY * 2)
       );
       if (topLeftLatLng.lat > MAX_LAT) {
-        valid = false;
+        lat = positioningMap.containerPointToLatLng(
+          L.point(0,
+            contentCenterY +
+            positioningMap.latLngToContainerPoint(L.latLng(MAX_LAT, 0)).y
+          )
+        ).lat;
       }
       if (bottomRightLatLng.lat < MIN_LAT) {
-        valid = false;
+        lat = positioningMap.containerPointToLatLng(
+          L.point(0,
+            contentCenterY - (400 -
+            positioningMap.latLngToContainerPoint(L.latLng(MIN_LAT, 0)).y)
+          )
+        ).lat;
       }
       positioningMap.setView(
         centerLatLng,
         zoomLevel,
         {animate: false}
       );
-      return valid;
+      return lat;
     }
   }
 })();
