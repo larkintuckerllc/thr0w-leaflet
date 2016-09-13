@@ -12,6 +12,7 @@
   var MAX_LAT = 85;
   var MIN_LAT = -85;
   var INTERVAL = 33;
+  var HAND_WIDTH = 400;
   var L = window.L;
   var service = {};
   // jscs:disable
@@ -496,6 +497,7 @@
         touchEndRadius = touchStartRadius;
         touchEndCenterX = (touchOneX + touchTwoX) / 2;
         touchEndCenterY = (touchOneY + touchTwoY) / 2;
+        if (touchStartRadius < HAND_WIDTH) handPanning = true;
       }
       if (e.touches.length === 1) {
         abort = false;
