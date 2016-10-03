@@ -99,7 +99,7 @@
   // jscs:enable
   &#x27;use strict&#x27;;
   if (window.thr0w === undefined) {
-    throw 400;
+    throw 300;
   }
   var MAX_LAT = 85;
   var MIN_LAT = -85;
@@ -181,19 +181,13 @@
     var positioningMap;
     var palatteEl = document.createElement(&#x27;div&#x27;);
     var mousePanning = false;
-    var zoomed = false;
     var mouseLastX;
     var mouseLastY;
     var touchOneLastX;
     var touchOneLastY;
-    var touchStartRadius;
-    var touchEndRadius;
-    var touchEndCenterX;
-    var touchEndCenterY;
     var abort = false;
     var abortInterval;
     var abortCancel = true;
-    var handPanning = false;
     var syncing = false;
     var iAmSyncing = false;
     var animationSyncing = false;
@@ -209,6 +203,9 @@
     var sync;
     var animationSync;
     var oobSync;
+    var zooming;
+    var zoomingDone = false;
+    var touchStartRadius;
     // DOM SETUP
     containerEl.classList.add(&#x27;thr0w_leaflet_container&#x27;);
     contentEl.appendChild(containerEl);
@@ -566,38 +563,18 @@
       e.stopPropagation();
       var touchOneX;
       var touchOneY;
-      var touchTwoX;
-      var touchTwoY;
-      touchOneX = (e.touches[0].pageX - frameOffsetLeft) *
-        scale + visibleContentLeft;
-      touchOneLastX = touchOneX;
-      touchOneY = (e.touches[0].pageY - frameOffsetTop) *
-        scale + visibleContentTop;
-      touchOneLastY = touchOneY;
-      if (e.touches.length &gt; 2) {
-        handPanning = true;
-      }
-      if (e.touches.length === 2) {
-        touchTwoX = (e.touches[1].pageX - frameOffsetLeft) *
-          scale + visibleContentLeft;
-        touchTwoY = (e.touches[1].pageY - frameOffsetTop) *
-          scale + visibleContentTop;
-        touchStartRadius = Math.floor(Math.sqrt(
-          Math.pow(touchOneX - touchTwoX, 2) +
-          Math.pow(touchOneY - touchTwoY, 2)
-        ));
-        touchEndRadius = touchStartRadius;
-        touchEndCenterX = (touchOneX + touchTwoX) / 2;
-        touchEndCenterY = (touchOneY + touchTwoY) / 2;
-        if (touchStartRadius &lt; HAND_WIDTH) handPanning = true;
-      }
       if (e.touches.length === 1) {
+        touchStartRadius = 0;
+        touchOneX = (e.touches[0].pageX - frameOffsetLeft) *
+          scale + visibleContentLeft;
+        touchOneLastX = touchOneX;
+        touchOneY = (e.touches[0].pageY - frameOffsetTop) *
+          scale + visibleContentTop;
+        touchOneLastY = touchOneY;
         abort = false;
         abortCancel = true;
         window.clearInterval(abortInterval);
         abortInterval = window.setInterval(checkAbort, 1000);
-        handPanning = false;
-        zoomed = false;
         sync.update();
         iAmSyncing = true;
         syncing = true;
@@ -607,90 +584,113 @@
     }
     function handleTouchMove(e) {
       e.stopPropagation();
-      if (abort) { // ISSUE WITH CHROME WITH TOUCH EVENTS AND MEMORY GROWTH
-        return;
-      }
-      if (zoomed) { // MAKING EXPLICT ALREADY IMPLICIT BEHAVIOR
-        return;
-      }
+      if (abort) return;
+      if (!iAmSyncing) return;
+      abortCancel = false;
+      if (zooming) return;
       var touchOneX;
       var touchOneY;
-      var touchTwoX;
-      var touchTwoY;
-      if (iAmSyncing) {
-        abortCancel = false;
-        touchOneX = (e.touches[0].pageX - frameOffsetLeft) *
-          scale + visibleContentLeft;
-        touchOneY = (e.touches[0].pageY - frameOffsetTop) *
-          scale + visibleContentTop;
-        if (!handPanning &amp;&amp; e.touches.length === 2) {
-          touchTwoX = (e.touches[1].pageX - frameOffsetLeft) *
-            scale + visibleContentLeft;
-          touchTwoY = (e.touches[1].pageY - frameOffsetTop) *
-            scale + visibleContentTop;
-          touchEndRadius = Math.floor(Math.sqrt(
-            Math.pow(touchOneX - touchTwoX, 2) +
-            Math.pow(touchOneY - touchTwoY, 2)
+      var i;
+      var j;
+      var radius;
+      for (i = 0; i &lt; e.touches.length; i++) {
+        inner: for (j = 0; j &lt; e.touches.length; j++) {
+          if (i &gt;= j) continue inner;
+          radius = Math.floor(scale * Math.sqrt(
+            Math.pow(e.touches[i].pageX - e.touches[j].pageX, 2) +
+            Math.pow(e.touches[i].pageY - e.touches[j].pageY, 2)
           ));
-          touchEndCenterX = (touchOneX + touchTwoX) / 2;
-          touchEndCenterY = (touchOneY + touchTwoY) / 2;
-        } else {
-          pan(
-            touchOneLastX - touchOneX,
-            touchOneLastY - touchOneY
-          );
-          sync.update();
+          touchStartRadius = radius &gt; touchStartRadius ? radius : touchStartRadius;
         }
-        touchOneLastX = touchOneX;
-        touchOneLastY = touchOneY;
       }
+      if (touchStartRadius &gt;= HAND_WIDTH) {
+        zooming = true;
+        return;
+      }
+      touchOneX = (e.touches[0].pageX - frameOffsetLeft) *
+        scale + visibleContentLeft;
+      touchOneY = (e.touches[0].pageY - frameOffsetTop) *
+        scale + visibleContentTop;
+      pan(
+        touchOneLastX - touchOneX,
+        touchOneLastY - touchOneY
+      );
+      sync.update();
+      touchOneLastX = touchOneX;
+      touchOneLastY = touchOneY;
     }
     function handleTouchEnd(e) {
       e.stopPropagation();
+      var i;
+      var radius;
+      var touchEndRadius = 0;
+      var changedTouchX = (e.changedTouches[0].pageX - frameOffsetLeft) *
+        scale + visibleContentLeft;
+      var changedTouchY = (e.changedTouches[0].pageY - frameOffsetTop) *
+        scale + visibleContentTop;
+      var farthestTouchIndex;
+      var farthestTouchX;
+      var farthestTouchY;
+      var touchEndCenterX;
+      var touchEndCenterY;
       var touchEndCenterLatLng;
       var newLat;
       var newLng;
       if (abort) {
         return;
       }
-      if (zoomed) {
-        return;
-      }
       if (iAmSyncing) {
-        if (e.touches.length === 1) {
-          if (!handPanning) {
-            zoomed = true;
-            touchEndCenterLatLng = positioningMap.containerPointToLatLng(
-              L.point(touchEndCenterX, touchEndCenterY)
-            );
-            newLat = (centerLatLng.lat + touchEndCenterLatLng.lat) / 2;
-            newLat = newLat &lt;= MAX_LAT ? newLat : MAX_LAT;
-            newLat = newLat &gt;= MIN_LAT ? newLat : MIN_LAT;
-            newLng = (centerLatLng.lng + touchEndCenterLatLng.lng) / 2;
-            if (touchEndCenterX &gt; contentCenterX &amp;&amp;
-              touchEndCenterLatLng.lng &lt; centerLatLng.lng) {
-              newLng = (centerLatLng.lng + touchEndCenterLatLng.lng + 360) / 2;
-              newLng = newLng &lt;= 180 ? newLng : newLng - 360;
+        if (zooming &amp;&amp; !zoomingDone) {
+          zoomingDone = true;
+          for (i = 0; i &lt; e.touches.length; i++) {
+            radius = Math.floor(scale * Math.sqrt(
+              Math.pow(e.touches[i].pageX - e.changedTouches[0].pageX, 2) +
+              Math.pow(e.touches[i].pageY - e.changedTouches[0].pageY, 2)
+            ));
+            if (radius &gt; touchEndRadius) {
+              farthestTouchIndex = i;
+              touchEndRadius = radius;
             }
-            if (touchEndCenterX &lt; contentCenterX &amp;&amp;
-              touchEndCenterLatLng.lng &gt; centerLatLng.lng) {
-              newLng = (centerLatLng.lng + touchEndCenterLatLng.lng - 360) / 2;
-              newLng = newLng &gt;= 180 ? newLng : newLng + 360;
-            }
-            if (touchEndRadius &gt; touchStartRadius) {
-              zoom(L.latLng(newLat, newLng), zoomLevel + 1);
-            } else {
-              zoom(L.latLng(newLat, newLng), zoomLevel - 1);
-            }
-            sync.update();
-            sync.idle();
-            iAmSyncing = false;
-            syncing = false;
-            oobSync.update();
-            oobSync.idle();
           }
+          farthestTouchX = (e.touches[farthestTouchIndex].pageX - frameOffsetLeft) *
+            scale + visibleContentLeft;
+          farthestTouchY = (e.touches[farthestTouchIndex].pageY - frameOffsetTop) *
+            scale + visibleContentTop;
+          touchEndCenterX = (changedTouchX + farthestTouchX) / 2;
+          touchEndCenterY = (changedTouchY + farthestTouchY) / 2;
+          touchEndCenterLatLng = positioningMap.containerPointToLatLng(
+            L.point(touchEndCenterX, touchEndCenterY)
+          );
+          newLat = (centerLatLng.lat + touchEndCenterLatLng.lat) / 2;
+          newLat = newLat &lt;= MAX_LAT ? newLat : MAX_LAT;
+          newLat = newLat &gt;= MIN_LAT ? newLat : MIN_LAT;
+          newLng = (centerLatLng.lng + touchEndCenterLatLng.lng) / 2;
+          if (touchEndCenterX &gt; contentCenterX &amp;&amp;
+            touchEndCenterLatLng.lng &lt; centerLatLng.lng) {
+            newLng = (centerLatLng.lng + touchEndCenterLatLng.lng + 360) / 2;
+            newLng = newLng &lt;= 180 ? newLng : newLng - 360;
+          }
+          if (touchEndCenterX &lt; contentCenterX &amp;&amp;
+            touchEndCenterLatLng.lng &gt; centerLatLng.lng) {
+            newLng = (centerLatLng.lng + touchEndCenterLatLng.lng - 360) / 2;
+            newLng = newLng &gt;= 180 ? newLng : newLng + 360;
+          }
+          if (touchEndRadius &gt; touchStartRadius) {
+            zoom(L.latLng(newLat, newLng), zoomLevel + 1);
+          } else {
+            zoom(L.latLng(newLat, newLng), zoomLevel - 1);
+          }
+          sync.update();
+        }
+        if (e.touches.length === 1) {
+          touchOneLastX = (e.touches[0].pageX - frameOffsetLeft) *
+            scale + visibleContentLeft;
+          touchOneLastY = (e.touches[0].pageY - frameOffsetTop) *
+            scale + visibleContentTop;
         }
         if (e.touches.length === 0) {
+          zooming = false;
+          zoomingDone = false;
           window.clearInterval(abortInterval);
           sync.idle();
           iAmSyncing = false;
