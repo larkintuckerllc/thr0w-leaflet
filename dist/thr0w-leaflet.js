@@ -588,7 +588,15 @@
           } else {
             zoom(L.latLng(newLat, newLng), zoomLevel - 1);
           }
+          zooming = false;
+          zoomingDone = false;
+          window.clearInterval(abortInterval);
           sync.update();
+          sync.idle();
+          iAmSyncing = false;
+          syncing = false;
+          oobSync.update();
+          oobSync.idle();
         }
         if (e.touches.length === 1) {
           touchOneLastX = (e.touches[0].pageX - frameOffsetLeft) *
@@ -596,6 +604,7 @@
           touchOneLastY = (e.touches[0].pageY - frameOffsetTop) *
             scale + visibleContentTop;
         }
+        // HACK NOT GETTING CALLED ON ZOOM
         if (e.touches.length === 0) {
           zooming = false;
           zoomingDone = false;
